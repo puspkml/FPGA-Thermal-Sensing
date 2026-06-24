@@ -1,105 +1,257 @@
-# FPGA Thermal Sensing using SPI protocol
+# Thermal Imaging Pipeline over SPI
 
-A simple Verilog-based thermal sensing simulation pipeline that reads temperature data from an image, transfers it through an SPI interface, and generates pseudo-colored RGB output.
+![Verilog](https://img.shields.io/badge/Verilog-HDL-blue)
+![Simulation](https://img.shields.io/badge/Simulation-Icarus%20Verilog-green)
+![GTKWave](https://img.shields.io/badge/Waveform-GTKWave-orange)
+![Status](https://img.shields.io/badge/Status-Working-success)
+
+A Verilog-based thermal imaging simulation that emulates a thermal sensor, transfers pixel data through an SPI interface, applies pseudo-color mapping, and reconstructs a colorized thermal image.
 
 ## Overview
 
-This project emulates the workflow of a thermal imaging sensor using a fully simulated digital pipeline.
+This project demonstrates an end-to-end digital thermal sensing workflow entirely in simulation.
 
-An input image is first converted into thermal intensity values using a Python script. The generated data is stored as a `.hex` file and then consumed by the Verilog modules during simulation.
+An input image is first converted into thermal intensity values using a Python preprocessing script. These values are stored in a hexadecimal memory file and accessed by a mock thermal sensor. The sensor streams thermal data through an SPI interface, where the master collects pixel values and passes them through a pseudo-color lookup table (LUT) to generate RGB output.
 
-The data flow is:
+The resulting thermal image is exported as a PPM image file.
 
 ```text
-Image
-  ↓
-Python Converter
-  ↓
-.hex Temperature Data
-  ↓
-sensor.v
-  ↓
-spi_master.v
-  ↓
-lut.v
-  ↓
-RGB Output
+Input Image
+     │
+     ▼
+Python Image Converter
+     │
+     ▼
+image.hex
+     │
+     ▼
+mock_thermal_sensor
+     │
+     ▼
+SPI Master
+     │
+     ▼
+Pseudo Color LUT
+     │
+     ▼
+RGB Pixel Stream
+     │
+     ▼
+thermal_output.ppm
 ```
 
-## Modules
+## Features
+
+* 16 × 16 thermal image simulation
+* SPI-based thermal data acquisition
+* Verilog implementation of master/slave communication
+* Pseudo-color temperature visualization
+* Automatic image reconstruction
+* GTKWave-compatible waveform generation
+* Fully simulation-based workflow
+
+## Repository Structure
+
+```text
+.
+├── sensor.v          # Mock thermal sensor
+├── spi_master.v      # SPI master controller
+├── lut.v             # Pseudo-color lookup table
+├── tb_final.v        # Top-level simulation testbench
+├── image.hex         # Thermal pixel data
+├── thermal.vcd       # Waveform dump
+└── thermal_output.ppm
+```
+
+## Module Description
 
 ### sensor.v
 
-Acts as the thermal sensor.
+Implements a mock thermal sensor.
 
-* Reads 16 × 16 thermal data from a `.hex` file
-* Provides temperature values sequentially
-* Mimics a sensor streaming thermal information
+Responsibilities:
+
+* Loads thermal values using `$readmemh`
+* Stores 256 temperature samples
+* Responds to SPI read requests
+* Streams thermal data through MISO
 
 ### spi_master.v
 
-Handles SPI communication.
+SPI communication controller.
 
-* Receives thermal data from the sensor
-* Implements SPI transfer logic
-* Synchronizes and processes incoming data
+Responsibilities:
+
+* Generates SPI clock
+* Controls chip select
+* Sends pixel addresses
+* Receives temperature data
+* Generates valid-data handshake signals
 
 ### lut.v
 
 Pseudo-color lookup table.
 
-* Maps raw temperature values to RGB values
-* Produces thermal color gradients
-* Generates visual output suitable for display
+Maps temperature values into RGB colors:
+
+| Temperature Range | Color Region  |
+| ----------------- | ------------- |
+| Low               | Blue → Cyan   |
+| Medium            | Cyan → Yellow |
+| High              | Yellow → Red  |
+| Very High         | Red → White   |
 
 ### tb_final.v
 
-Simulation testbench.
+System-level verification environment.
 
-* Connects all modules together
-* Drives the complete thermal sensing pipeline
-* Generates waveform outputs for verification
+Responsibilities:
 
-## Simulation Tools
+* Drives SPI transactions
+* Reads all 256 pixels
+* Stores RGB output
+* Generates waveform files
+* Exports final thermal image
 
-* Icarus Verilog (iverilog)
+## Getting Started
+
+### Prerequisites
+
+Install:
+
+* Icarus Verilog
 * GTKWave
+* Python 3.x
 
-## Running
-
-Compile:
+Ubuntu:
 
 ```bash
-iverilog -o sim sensor.v spi_master.v lut.v tb_final.v
+sudo apt install iverilog gtkwave python3
 ```
 
-Run:
+### Generate Thermal Data
+
+Convert an image into thermal pixel values:
+
+```bash
+python image_to_hex.py input_image.png image.hex
+```
+
+Expected output:
+
+```text
+image.hex
+```
+
+containing 256 hexadecimal values.
+
+### Compile
+
+```bash
+iverilog -o sim \
+    spi_master.v \
+    sensor.v \
+    lut.v \
+    tb_final.v
+```
+
+### Run Simulation
 
 ```bash
 vvp sim
 ```
 
-Open waveform:
+Generated files:
+
+```text
+thermal.vcd
+thermal_output.ppm
+```
+
+### View Waveforms
 
 ```bash
 gtkwave thermal.vcd
 ```
 
-## Motivation
+Useful signals:
 
-Thermal cameras convert temperature information into colorized images that are easier for humans to interpret. This project recreates a simplified version of that process entirely in simulation, making it useful for learning SPI communication, image-based data processing, and hardware design workflows.
+* sclk
+* cs_n
+* mosi
+* miso
+* address
+* data_in
+* rx_valid
+* r_wire
+* g_wire
+* b_wire
 
-## Future Work
+## Example Workflow
+
+```text
+candle.png
+    ↓
+image.hex
+    ↓
+SPI transfer
+    ↓
+temperature values
+    ↓
+pseudo-color mapping
+    ↓
+thermal_output.ppm
+```
+
+## Why This Project Is Useful
+
+This project serves as a compact reference for:
+
+* SPI protocol implementation in Verilog
+* Sensor interface design
+* Memory-based data acquisition
+* Hardware image processing
+* FPGA/ASIC design verification workflows
+* Digital thermal imaging concepts
+
+It is particularly useful for students learning communication protocols and image-processing pipelines in hardware description languages.
+
+## Support
+
+For issues or questions:
+
+1. Open a GitHub Issue
+2. Review waveform outputs using GTKWave
+3. Verify memory initialization through `image.hex`
+4. Check simulation logs generated by Icarus Verilog
+
+## Contributing
+
+Contributions are welcome.
+
+Typical improvements include:
 
 * Higher image resolutions
-* Real-time sensor interfaces
-* FPGA implementation
-* HDMI/VGA display output
-* Advanced thermal color maps
+* FPGA deployment
+* Alternative thermal color maps
+* Real sensor integration
+* HDMI/VGA output support
+* Performance optimization
 
-## Author
+Please submit a Pull Request with a clear description of the proposed changes.
 
-Puspa Kamal Rai
+## Maintainer
+
+**Puspa Kamal Rai**
 M.Sc. Physics
+Department of Physics
 Sri Sathya Sai Institute of Higher Learning
-# FPGA-Thermal-Sensing
+
+## Future Roadmap
+
+* 32 × 32 and 64 × 64 thermal frames
+* Real-time streaming
+* Hardware acceleration
+* FPGA implementation
+* Live sensor interface
+* Video generation from thermal frames
