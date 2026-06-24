@@ -50,6 +50,9 @@ thermal_output.ppm
 * GTKWave-compatible waveform generation
 * Fully simulation-based workflow
 
+<img width="1045" height="534" alt="image" src="https://github.com/user-attachments/assets/a04b0024-0f52-4978-a9be-557911dcfec3" />
+
+
 ## Repository Structure
 
 ```text
